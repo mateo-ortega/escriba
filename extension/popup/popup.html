@@ -1,0 +1,70 @@
+<meta charset="utf-8" />
+<title>Escriba</title>
+<link rel="stylesheet" href="../estilo/tokens.css" />
+<link rel="stylesheet" href="popup.css" />
+
+<header>
+  <span class="marca">escriba</span>
+  <span class="badge">v0.1</span>
+</header>
+
+<main>
+  <!-- Estado de la llamada y acción principal -->
+  <section class="panel" id="panel-estado">
+    <div class="linea-estado">
+      <span class="punto" id="punto"></span>
+      <span id="fase" class="mono">Sin grabar</span>
+      <span id="cronometro" class="mono"></span>
+    </div>
+    <p id="llamada" class="titulo-llamada"></p>
+    <p id="detalle" class="pista"></p>
+  </section>
+
+  <!-- Proyecto de destino, solo cuando el destino es el Agente de Discovery -->
+  <section id="bloque-proyecto" class="oculto">
+    <label for="proyecto">Proyecto de discovery</label>
+    <select id="proyecto"></select>
+  </section>
+
+  <button id="grabar" class="btn btn-primary">Grabar y transcribir</button>
+  <button id="detener" class="btn btn-alerta oculto">Detener y transcribir</button>
+
+  <!-- Resultado, con la posibilidad de ponerle nombre a la otra parte -->
+  <section id="bloque-resultado" class="panel oculto">
+    <p class="eyebrow">Resultado</p>
+    <p id="resumen"></p>
+    <div class="acciones">
+      <button id="bajar-txt" class="btn btn-ghost">Bajar .txt</button>
+      <button id="bajar-vtt" class="btn btn-ghost">Bajar .vtt</button>
+    </div>
+    <div id="bloque-renombrar">
+      <label for="hablante-viejo">Renombrar hablante</label>
+      <select id="hablante-viejo"></select>
+      <div class="acciones">
+        <input type="text" id="nombre-nuevo" placeholder="Nombre real" />
+        <button id="renombrar" class="btn btn-ghost">Aplicar</button>
+      </div>
+      <p id="nota-renombrar" class="pista"></p>
+    </div>
+  </section>
+
+  <!-- Error, con reintento que no vuelve a grabar -->
+  <section id="bloque-error" class="panel oculto">
+    <p class="eyebrow">Algo falló</p>
+    <p id="error" class="alerta"></p>
+    <button id="reintentar" class="btn btn-ghost">Reintentar sin regrabar</button>
+  </section>
+
+  <!-- Últimas sesiones -->
+  <section id="bloque-sesiones" class="oculto">
+    <p class="eyebrow">Últimas llamadas</p>
+    <ul id="sesiones"></ul>
+  </section>
+</main>
+
+<footer>
+  <a href="#" id="abrir-opciones">Ajustes de Escriba</a>
+  <span id="motor-actual" class="mono"></span>
+</footer>
+
+<script type="module" src="popup.js"></script>

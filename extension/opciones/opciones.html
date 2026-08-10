@@ -1,0 +1,175 @@
+<meta charset="utf-8" />
+<title>Ajustes de Escriba</title>
+<link rel="stylesheet" href="../estilo/tokens.css" />
+<link rel="stylesheet" href="opciones.css" />
+
+<header>
+  <span class="marca">escriba</span>
+  <span class="badge">ajustes</span>
+</header>
+
+<main>
+  <!-- 1. Quién eres -->
+  <section class="panel">
+    <p class="eyebrow">Quién graba</p>
+    <label for="nombreConsultor">Tu nombre en la transcripción</label>
+    <input type="text" id="nombreConsultor" />
+    <p class="pista">
+      Con este nombre queda etiquetada la pista de tu micrófono. La otra parte se
+      identifica sola cuando Meet tiene los subtítulos encendidos.
+    </p>
+
+    <div class="acciones">
+      <button id="permiso-micro" class="btn btn-ghost">Conceder acceso al micrófono</button>
+    </div>
+    <p class="pista">
+      Chrome solo permite pedir el micrófono desde una página como esta, no desde
+      el fondo. Concédelo una vez y ya queda para siempre. Sin él se graba solo la
+      voz de los demás.
+    </p>
+    <p id="estado-micro" class="pista"></p>
+  </section>
+
+  <!-- 2. Motor de transcripción -->
+  <section class="panel">
+    <p class="eyebrow">Motor de transcripción</p>
+    <label for="motor">Proveedor</label>
+    <select id="motor"></select>
+    <p id="ayuda-motor" class="pista"></p>
+
+    <div id="campo-llave">
+      <label for="motorLlave">Llave de API</label>
+      <input type="password" id="motorLlave" autocomplete="off" />
+      <p class="pista">
+        Se guarda solo en este navegador y únicamente viaja al proveedor que
+        elegiste. Escriba no tiene servidor propio por donde pase tu audio.
+      </p>
+    </div>
+
+    <div id="campo-base-url">
+      <label for="motorBaseUrl">URL base</label>
+      <input type="text" id="motorBaseUrl" placeholder="https://api.groq.com/openai/v1" />
+      <p class="pista">
+        OpenAI: <span class="mono">https://api.openai.com/v1</span>. Groq:
+        <span class="mono">https://api.groq.com/openai/v1</span>. Whisper local:
+        <span class="mono">http://localhost:8000/v1</span>.
+      </p>
+    </div>
+
+    <div class="dos-columnas">
+      <div>
+        <label for="motorModelo">Modelo</label>
+        <input type="text" id="motorModelo" placeholder="por defecto" />
+      </div>
+      <div>
+        <label for="idioma">Idioma</label>
+        <input type="text" id="idioma" placeholder="es" />
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. Destino -->
+  <section class="panel">
+    <p class="eyebrow">Destino de la transcripción</p>
+    <label for="destino">A dónde va cada llamada</label>
+    <select id="destino">
+      <option value="descarga">Descargar como archivo</option>
+      <option value="discovery">Enviarla al Agente de Discovery</option>
+    </select>
+
+    <div id="bloque-discovery">
+      <div class="dos-columnas">
+        <div>
+          <label for="discoveryBackendUrl">URL del backend</label>
+          <input type="text" id="discoveryBackendUrl" placeholder="https://..." />
+        </div>
+        <div>
+          <label for="discoveryPanelUrl">URL del panel</label>
+          <input type="text" id="discoveryPanelUrl" placeholder="https://..." />
+        </div>
+      </div>
+      <div class="dos-columnas">
+        <div>
+          <label for="discoverySupabaseUrl">URL de Supabase</label>
+          <input type="text" id="discoverySupabaseUrl" placeholder="https://....supabase.co" />
+        </div>
+        <div>
+          <label for="discoverySupabaseAnonKey">Llave pública de Supabase</label>
+          <input type="password" id="discoverySupabaseAnonKey" autocomplete="off" />
+        </div>
+      </div>
+
+      <div class="acciones">
+        <button id="vincular" class="btn btn-ghost">Vincular con el panel</button>
+        <button id="desvincular" class="btn btn-ghost">Desvincular</button>
+      </div>
+      <p id="estado-vinculo" class="pista"></p>
+      <p class="pista">
+        No hay una segunda contraseña: si ya iniciaste sesión en el panel con tu
+        enlace mágico, Escriba toma prestada esa sesión y la renueva sola.
+      </p>
+    </div>
+  </section>
+
+  <!-- 4. Aviso a los participantes -->
+  <section class="panel">
+    <p class="eyebrow">Aviso a los participantes</p>
+    <p class="pista aviso-etico">
+      Capturar el audio de una pestaña no deja ninguna marca visible para los
+      demás. Que nadie lo note es justamente la razón para avisar: en una llamada
+      de negocio sobre datos de un cliente, el aviso es parte del oficio, no un
+      trámite.
+    </p>
+    <div class="fila-check">
+      <input type="checkbox" id="mostrarIndicador" />
+      <label for="mostrarIndicador">Mostrarme un indicador en la pestaña mientras graba</label>
+    </div>
+    <div class="fila-check">
+      <input type="checkbox" id="avisarEnChat" />
+      <label for="avisarEnChat">Escribir el aviso en el chat de Meet al empezar</label>
+    </div>
+    <label for="textoAviso">Texto del aviso</label>
+    <textarea id="textoAviso" rows="2"></textarea>
+  </section>
+
+  <!-- 5. Captura -->
+  <section class="panel">
+    <p class="eyebrow">Captura</p>
+    <div class="dos-columnas">
+      <div>
+        <label for="minutosPorTrozo">Minutos por trozo</label>
+        <input type="number" id="minutosPorTrozo" min="1" max="15" />
+      </div>
+      <div>
+        <label for="umbralSilencio">Umbral de silencio</label>
+        <input type="number" id="umbralSilencio" min="0" max="0.1" step="0.001" />
+      </div>
+    </div>
+    <p class="pista">
+      La grabación se corta en trozos independientes: si el navegador muere no se
+      pierde la llamada, y cada petición al motor se queda muy por debajo del
+      límite de tamaño de los proveedores. Los trozos por debajo del umbral se
+      consideran silencio y no se mandan a transcribir, que es lo que hace barato
+      grabar las dos pistas por separado.
+    </p>
+    <div class="fila-check">
+      <input type="checkbox" id="cancelarEco" />
+      <label for="cancelarEco">
+        Cancelar el eco del micrófono (déjalo encendido si no usas audífonos)
+      </label>
+    </div>
+    <div class="fila-check">
+      <input type="checkbox" id="conservarAudio" />
+      <label for="conservarAudio">
+        Conservar el audio después de transcribir (por defecto se borra)
+      </label>
+    </div>
+  </section>
+
+  <div class="barra-guardar">
+    <button id="guardar" class="btn btn-primary">Guardar ajustes</button>
+    <span id="estado-guardado" class="pista"></span>
+  </div>
+</main>
+
+<script type="module" src="opciones.js"></script>

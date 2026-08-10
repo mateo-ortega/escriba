@@ -1,0 +1,248 @@
+/**
+ * Tokens de Escriba: monocromo puro, negro con blanco.
+ *
+ * La jerarquía se construye con tono y peso tipográfico, no con color. No hay
+ * color de acento: el blanco cumple ese rol y la profundidad sale de pasos de
+ * gris, veladuras y luz de borde. El único color del sistema es el coral, y solo
+ * como señal semántica de alerta o de grabación en curso.
+ */
+
+:root {
+  color-scheme: dark;
+
+  --bg: #0a0a0b;
+  --panel: #131316;
+  --panel-2: #18181c;
+  --line: #26262b;
+  --line-strong: #34343b;
+
+  --ink: #f4f4f6;
+  --ink-dim: #b9b9c2;
+  --ink-soft: #cfcfd6;
+  --muted: #8e8e98;
+
+  --coral: #e0837a;
+  --coral-strong: #b3564d;
+
+  --sheen: linear-gradient(180deg, #16161b 0%, #101014 100%);
+  --edge: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+
+  --font-body: "Noto Sans", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  --radius-s: 6px;
+  --radius-m: 12px;
+  --radius-pill: 999px;
+
+  --ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --dur: 0.18s;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink-soft);
+  font-family: var(--font-body);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* --- Marca --- */
+
+.marca {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--ink);
+}
+
+.marca::before {
+  content: "";
+  width: 10px;
+  height: 10px;
+  background: var(--ink);
+}
+
+.badge {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-pill);
+  padding: 2px 8px;
+}
+
+/* --- Superficies --- */
+
+.panel {
+  background: var(--sheen);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-m);
+  box-shadow: var(--edge);
+  padding: 12px 14px;
+}
+
+.eyebrow {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.eyebrow::before {
+  content: "//";
+  font-weight: 400;
+  color: var(--ink);
+  letter-spacing: 0;
+}
+
+/* --- Controles --- */
+
+.btn {
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 13px;
+  border-radius: 10px;
+  padding: 9px 16px;
+  cursor: pointer;
+  transition: var(--dur) var(--ease);
+  border: 1px solid transparent;
+  width: 100%;
+}
+
+.btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: var(--ink);
+  color: var(--bg);
+}
+
+.btn-primary:hover:not(:disabled) {
+  filter: brightness(0.92);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--ink);
+  border-color: var(--line-strong);
+}
+
+.btn-ghost:hover:not(:disabled) {
+  border-color: var(--ink-soft);
+}
+
+.btn-alerta {
+  background: var(--coral-strong);
+  color: var(--ink);
+}
+
+.btn-alerta:hover:not(:disabled) {
+  filter: brightness(1.1);
+}
+
+label {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 5px;
+}
+
+input[type="text"],
+input[type="password"],
+input[type="number"],
+select,
+textarea {
+  width: 100%;
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--ink);
+  background: var(--panel-2);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-s);
+  padding: 8px 10px;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: var(--ink-soft);
+}
+
+.fila-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  margin-bottom: 10px;
+}
+
+.fila-check input {
+  margin: 2px 0 0;
+  accent-color: var(--ink);
+}
+
+.fila-check label {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: 13px;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--ink-soft);
+}
+
+.pista {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 5px;
+}
+
+/* --- Estado --- */
+
+.punto {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--muted);
+  flex: none;
+}
+
+.punto.activo {
+  background: var(--coral);
+}
+
+.punto.listo {
+  background: var(--ink);
+}
+
+.mono {
+  font-family: var(--font-mono);
+}
+
+.alerta {
+  color: var(--coral);
+}
+
+.oculto {
+  display: none !important;
+}

@@ -1,0 +1,5 @@
+{
+  "private": true,
+  "type": "module",
+  "//": "Escriba no se compila ni tiene dependencias: se carga tal cual en el navegador. Este archivo existe solo para que Node trate los módulos como ESM al correr herramientas/validar.mjs."
+}

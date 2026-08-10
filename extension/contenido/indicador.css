@@ -1,0 +1,61 @@
+/**
+ * Indicador de grabación, inyectado en la pestaña de la videollamada.
+ *
+ * Solo lo ves tú: capturar el audio de una pestaña no deja ninguna marca visible
+ * para los demás participantes, y precisamente por eso hace falta que quien graba
+ * lo tenga presente en todo momento. Es un recordatorio, no un adorno.
+ *
+ * Los nombres de clase van prefijados con `escriba-` y los valores son literales
+ * en vez de variables, porque este CSS convive con el de Meet y el de Zoom y no
+ * debe heredar ni contaminar nada.
+ */
+
+.escriba-indicador {
+  position: fixed;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2147483647; /* por encima de la interfaz de la videollamada */
+
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  font-family: ui-monospace, "JetBrains Mono", monospace;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  color: #f4f4f6;
+
+  padding: 7px 14px;
+  background: rgba(10, 10, 11, 0.92);
+  border: 1px solid #34343b;
+  border-radius: 999px;
+  box-shadow: 0 10px 30px -12px rgba(0, 0, 0, 0.9);
+
+  pointer-events: none;
+  user-select: none;
+}
+
+.escriba-punto {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #e0837a;
+  animation: escriba-latido 2s ease-in-out infinite;
+}
+
+@keyframes escriba-latido {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .escriba-punto {
+    animation: none;
+  }
+}

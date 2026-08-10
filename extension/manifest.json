@@ -1,0 +1,69 @@
+{
+  "manifest_version": 3,
+  "name": "Escriba",
+  "version": "0.1.0",
+  "description": "Transcribe tus videollamadas de Google Meet y Zoom sin que entre un bot a la reunión. Tú eliges el motor de transcripción.",
+  "minimum_chrome_version": "116",
+
+  "permissions": [
+    "tabCapture",
+    "offscreen",
+    "storage",
+    "unlimitedStorage",
+    "activeTab",
+    "scripting",
+    "downloads",
+    "notifications"
+  ],
+
+  "host_permissions": [
+    "https://meet.google.com/*",
+    "https://*.zoom.us/*"
+  ],
+
+  "optional_host_permissions": [
+    "https://*/*",
+    "http://localhost/*",
+    "http://127.0.0.1/*"
+  ],
+
+  "background": {
+    "service_worker": "background/service_worker.js",
+    "type": "module"
+  },
+
+  "action": {
+    "default_title": "Escriba",
+    "default_popup": "popup/popup.html",
+    "default_icon": {
+      "16": "iconos/icono-16.png",
+      "32": "iconos/icono-32.png",
+      "48": "iconos/icono-48.png",
+      "128": "iconos/icono-128.png"
+    }
+  },
+
+  "options_page": "opciones/opciones.html",
+
+  "content_scripts": [
+    {
+      "matches": ["https://meet.google.com/*"],
+      "js": ["contenido/meet.js"],
+      "css": ["contenido/indicador.css"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://*.zoom.us/wc/*"],
+      "js": ["contenido/zoom.js"],
+      "css": ["contenido/indicador.css"],
+      "run_at": "document_idle"
+    }
+  ],
+
+  "icons": {
+    "16": "iconos/icono-16.png",
+    "32": "iconos/icono-32.png",
+    "48": "iconos/icono-48.png",
+    "128": "iconos/icono-128.png"
+  }
+}

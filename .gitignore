@@ -1,0 +1,19 @@
+# Nada de secretos en el repositorio: las llaves de los motores viven en
+# chrome.storage.local, en la máquina de quien usa la extensión.
+*.local
+.env
+.env.*
+!.env.example
+
+# Artefactos de empaquetado
+*.zip
+*.crx
+*.pem
+dist/
+
+# Ruido del sistema y del editor
+node_modules/
+.DS_Store
+.idea/
+.vscode/
+__pycache__/

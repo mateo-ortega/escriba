@@ -1,0 +1,80 @@
+/* Opciones: una columna angosta, del ancho de un párrafo legible. */
+
+body {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 32px 24px 64px;
+}
+
+header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+main {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.panel {
+  padding: 18px 20px;
+}
+
+.panel .eyebrow {
+  margin-bottom: 14px;
+}
+
+.panel label {
+  margin-top: 14px;
+}
+
+.panel .eyebrow + label,
+.panel > label:first-of-type {
+  margin-top: 0;
+}
+
+.dos-columnas {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.acciones {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.acciones .btn {
+  width: auto;
+}
+
+.aviso-etico {
+  border-left: 2px solid rgba(244, 244, 246, 0.55);
+  padding: 8px 0 8px 12px;
+  margin: 0 0 14px;
+  color: var(--ink-soft);
+}
+
+.barra-guardar {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 0;
+  margin-top: 8px;
+  background: linear-gradient(180deg, rgba(10, 10, 11, 0) 0%, var(--bg) 45%);
+}
+
+.barra-guardar .btn {
+  width: auto;
+}
+
+.pista .mono {
+  color: var(--ink-soft);
+  font-size: 11px;
+}
