@@ -36,7 +36,7 @@ construcción, porque se graban dos pistas separadas:
 | `mic` | tu micrófono | tú |
 | `tab` | el audio de la pestaña | la otra parte |
 
-Con eso ya queda la división que de verdad importa en una llamada de discovery:
+Con eso ya queda la división que de verdad importa en una llamada:
 quién preguntó y quién respondió. Encima de eso, en Google Meet, si los subtítulos
 están encendidos, Escriba lee la línea de tiempo de nombres del propio Meet y le
 pone nombre propio a cada interlocutor. **El audio da el texto bueno, los
