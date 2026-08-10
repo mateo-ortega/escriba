@@ -142,8 +142,11 @@ al empezar. La segunda viene apagada, porque la decisión es tuya.
 ## Integración con el Agente de Discovery
 
 Escriba funciona solo, pero también puede entregar cada llamada directamente a un
-proyecto del Agente de Discovery, sin descargar ni volver a subir nada. Ver
-[docs/INTEGRACION.md](docs/INTEGRACION.md).
+proyecto del Agente de Discovery, sin descargar ni volver a subir nada.
+
+Configurarlo es escribir **una** cosa: la URL del panel. El panel entrega el resto y
+presta la sesión que ya tienes abierta, así que no hay ninguna credencial nueva que
+crear. Ver [docs/INTEGRACION.md](docs/INTEGRACION.md).
 
 ## Desarrollo
 
@@ -161,6 +164,7 @@ extension/
 ├── background/service_worker.js   decide y guarda el estado
 ├── offscreen/                     captura, transcribe y entrega
 ├── contenido/                     lee Meet y Zoom (subtítulos, título, aviso)
+│                                  y marca su presencia en el panel
 ├── nucleo/
 │   ├── motores/                   un módulo por proveedor de transcripción
 │   ├── destinos/                  a dónde va la transcripción

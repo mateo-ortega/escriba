@@ -78,36 +78,39 @@
     </select>
 
     <div id="bloque-discovery">
-      <div class="dos-columnas">
-        <div>
-          <label for="discoveryBackendUrl">URL del backend</label>
-          <input type="text" id="discoveryBackendUrl" placeholder="https://..." />
-        </div>
-        <div>
-          <label for="discoveryPanelUrl">URL del panel</label>
-          <input type="text" id="discoveryPanelUrl" placeholder="https://..." />
-        </div>
-      </div>
-      <div class="dos-columnas">
-        <div>
-          <label for="discoverySupabaseUrl">URL de Supabase</label>
-          <input type="text" id="discoverySupabaseUrl" placeholder="https://....supabase.co" />
-        </div>
-        <div>
-          <label for="discoverySupabaseAnonKey">Llave pública de Supabase</label>
-          <input type="password" id="discoverySupabaseAnonKey" autocomplete="off" />
-        </div>
-      </div>
+      <label for="discoveryPanelUrl">URL del panel</label>
+      <input type="text" id="discoveryPanelUrl" placeholder="https://tu-panel.vercel.app" />
+      <p class="pista">
+        Es el único dato que hay que escribir. El resto lo entrega el panel al
+        vincular, y tampoco hay una segunda contraseña: si ya iniciaste sesión ahí
+        con tu enlace mágico, Escriba toma prestada esa sesión y la renueva sola.
+      </p>
 
       <div class="acciones">
-        <button id="vincular" class="btn btn-ghost">Vincular con el panel</button>
+        <button id="vincular" class="btn btn-primary">Vincular con el panel</button>
         <button id="desvincular" class="btn btn-ghost">Desvincular</button>
       </div>
       <p id="estado-vinculo" class="pista"></p>
-      <p class="pista">
-        No hay una segunda contraseña: si ya iniciaste sesión en el panel con tu
-        enlace mágico, Escriba toma prestada esa sesión y la renueva sola.
-      </p>
+
+      <details id="detalles-discovery">
+        <summary>Lo que entregó el panel</summary>
+        <div class="dos-columnas">
+          <div>
+            <label for="discoveryBackendUrl">URL del backend</label>
+            <input type="text" id="discoveryBackendUrl" readonly />
+          </div>
+          <div>
+            <label for="discoverySupabaseUrl">URL de Supabase</label>
+            <input type="text" id="discoverySupabaseUrl" readonly />
+          </div>
+        </div>
+        <label for="discoverySupabaseAnonKey">Llave pública de Supabase</label>
+        <input type="password" id="discoverySupabaseAnonKey" readonly autocomplete="off" />
+        <p class="pista">
+          Es la llave publishable, la que el propio panel expone al navegador. Nunca
+          la de service role.
+        </p>
+      </details>
     </div>
   </section>
 

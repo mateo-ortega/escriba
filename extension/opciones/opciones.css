@@ -78,3 +78,30 @@ main {
   color: var(--ink-soft);
   font-size: 11px;
 }
+
+/* Lo que entrega el panel se muestra, pero replegado: es para comprobar, no para
+   editar. */
+details {
+  margin-top: 14px;
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+}
+
+summary {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+summary:hover {
+  color: var(--ink-soft);
+}
+
+input[readonly] {
+  color: var(--muted);
+  background: var(--panel);
+  cursor: default;
+}

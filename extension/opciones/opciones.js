@@ -127,58 +127,103 @@ async function asegurarPermisos(origenes) {
 // --- Vínculo con el panel del Agente de Discovery ---
 
 /**
- * Vincula Escriba con el panel leyendo la sesión que ya tiene abierta.
+ * Ruta de la página del panel que entrega la configuración de la integración.
+ */
+const RUTA_ENLACE = "/panel/escriba";
+
+/**
+ * Vincula Escriba con el panel.
  *
- * Abre el panel, espera a que cargue y lee de su almacenamiento local la sesión
- * de Supabase. Es el mismo token que usa el panel para hablar con el backend, así
- * que la extensión hereda exactamente los mismos permisos, ni uno más.
+ * El único dato que hay que teclear es la URL del panel. Todo lo demás lo entrega
+ * el propio panel en su página de enlace: la URL del backend, la de Supabase y su
+ * llave pública. Antes había que copiar cinco campos de infraestructura a mano, que
+ * es justo lo que un consultor no tiene por qué saber.
+ *
+ * De ahí se sacan dos cosas en una sola visita:
+ *
+ *   la configuración  de un bloque JSON que la página publica en el DOM
+ *   la sesión         del almacenamiento local, la misma que usa el panel
+ *
+ * El token heredado le da a la extensión exactamente los permisos del usuario en
+ * el panel, con el aislamiento entre agencias resuelto por las mismas políticas
+ * RLS. No se crea ninguna credencial nueva.
  */
 async function vincular() {
   const config = await leerConfig();
   if (!config.discoveryPanelUrl) throw new Error("Escribe primero la URL del panel.");
 
-  // Se piden los tres orígenes que la integración necesita: el panel para leer la
-  // sesión, el backend para la API y Supabase para subir el archivo.
-  for (const url of [
-    config.discoveryPanelUrl,
-    config.discoveryBackendUrl,
-    config.discoverySupabaseUrl,
-  ]) {
-    if (url && !(await asegurarPermisoDeHost(url))) {
-      throw new Error("Sin permiso para ese origen no se puede vincular.");
-    }
+  if (!(await asegurarPermisoDeHost(config.discoveryPanelUrl))) {
+    throw new Error("Sin permiso para el origen del panel no se puede vincular.");
   }
 
-  const pestana = await chrome.tabs.create({ url: config.discoveryPanelUrl, active: true });
+  const url = new URL(RUTA_ENLACE, config.discoveryPanelUrl).href;
+  const pestana = await chrome.tabs.create({ url, active: true });
   await esperarCarga(pestana.id);
 
   const [resultado] = await chrome.scripting.executeScript({
     target: { tabId: pestana.id },
-    func: leerSesionDeLaPagina,
+    func: leerEnlaceDeLaPagina,
   });
-  const sesion = resultado?.result;
+  const { config: delPanel, sesion } = resultado?.result ?? {};
+
   if (!sesion) {
     throw new Error(
       "No se encontró una sesión en el panel. Inicia sesión ahí con tu enlace mágico y vuelve a intentarlo.",
     );
   }
+  if (!delPanel?.supabaseUrl || !delPanel?.supabaseAnonKey) {
+    throw new Error(
+      `La página ${RUTA_ENLACE} no publicó la configuración. Revisa que el panel esté actualizado.`,
+    );
+  }
 
+  // Los otros dos orígenes se piden ahora que ya se sabe cuáles son.
+  for (const u of [delPanel.backendUrl, delPanel.supabaseUrl]) {
+    if (u && !(await asegurarPermisoDeHost(u))) {
+      throw new Error("Sin permiso para ese origen la entrega no podría completarse.");
+    }
+  }
+
+  await guardarConfig({
+    discoveryBackendUrl: delPanel.backendUrl ?? "",
+    discoverySupabaseUrl: delPanel.supabaseUrl,
+    discoverySupabaseAnonKey: delPanel.supabaseAnonKey,
+  });
   await guardarSesionPanel(sesion);
+  await registrarMarcaEnPanel(config.discoveryPanelUrl);
+
+  pintar(await leerConfig());
   await pintarVinculo();
 }
 
 /**
- * Se ejecuta dentro de la página del panel para leer su sesión.
+ * Se ejecuta dentro de la página del panel para leer configuración y sesión.
  *
- * La librería de Supabase guarda la sesión en `localStorage` bajo una clave con
- * la forma `sb-<referencia del proyecto>-auth-token`. Esta función corre en el
- * contexto de la pestaña, no en el de la extensión, así que no puede usar nada de
- * fuera de su propio cuerpo.
+ * Corre en el contexto de la pestaña, no en el de la extensión, así que no puede
+ * usar nada de fuera de su propio cuerpo.
+ *
+ * Dos detalles que explican la forma:
+ *
+ * - La configuración se lee de un `<script type="application/json">`, no de una
+ *   variable de JavaScript. Un script inyectado corre en un mundo aislado y no ve
+ *   las variables de la página, pero sí ve el DOM.
+ * - La sesión se lee de `localStorage`, que sí es compartido entre mundos porque
+ *   pertenece al origen. La librería de Supabase la guarda bajo una clave con la
+ *   forma `sb-<referencia del proyecto>-auth-token`.
  *
  * Returns:
- *   sesion: { access_token, refresh_token, expires_at, email } o null
+ *   enlace: { config, sesion }, cada uno posiblemente nulo
  */
-function leerSesionDeLaPagina() {
+function leerEnlaceDeLaPagina() {
+  let config = null;
+  try {
+    const bloque = document.getElementById("escriba-config");
+    if (bloque) config = JSON.parse(bloque.textContent);
+  } catch {
+    /* bloque ausente o malformado */
+  }
+
+  let sesion = null;
   for (let i = 0; i < localStorage.length; i += 1) {
     const clave = localStorage.key(i);
     if (!/^sb-.*-auth-token$/.test(clave ?? "")) continue;
@@ -186,17 +231,52 @@ function leerSesionDeLaPagina() {
       const datos = JSON.parse(localStorage.getItem(clave));
       const s = datos?.currentSession ?? datos;
       if (!s?.access_token) continue;
-      return {
+      sesion = {
         access_token: s.access_token,
         refresh_token: s.refresh_token ?? null,
         expires_at: s.expires_at ?? null,
         email: s.user?.email ?? null,
       };
+      break;
     } catch {
       /* clave con otra forma, se sigue buscando */
     }
   }
-  return null;
+
+  return { config, sesion };
+}
+
+/**
+ * Registra un script de contenido permanente en el origen del panel.
+ *
+ * Su único trabajo es dejar una marca en el DOM para que el panel pueda decir
+ * "Escriba está instalado" en vez de mostrar instrucciones a ciegas. Se registra
+ * de forma dinámica porque la URL del panel la elige cada agencia y no puede
+ * estar en el manifiesto.
+ *
+ * Args:
+ *   panelUrl: URL del panel ya autorizada
+ */
+async function registrarMarcaEnPanel(panelUrl) {
+  const patron = `${new URL(panelUrl).origin}/*`;
+  const ID = "marca-en-panel";
+  try {
+    // Registrar dos veces lanza, así que primero se quita el registro anterior.
+    await chrome.scripting.unregisterContentScripts({ ids: [ID] }).catch(() => {});
+    await chrome.scripting.registerContentScripts([
+      {
+        id: ID,
+        matches: [patron],
+        js: ["contenido/marca_panel.js"],
+        runAt: "document_idle",
+        persistAcrossSessions: true,
+      },
+    ]);
+  } catch (e) {
+    // La marca es una cortesía para la interfaz del panel: si no se puede
+    // registrar, la vinculación sigue siendo válida.
+    console.warn("[escriba] no se pudo registrar la marca en el panel:", e);
+  }
 }
 
 /** Espera a que una pestaña termine de cargar. */

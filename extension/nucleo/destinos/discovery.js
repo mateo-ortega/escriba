@@ -4,16 +4,21 @@
  * Manda la transcripción directo al proyecto de discovery correspondiente, con
  * lo que desaparece el paso manual de descargar un archivo y volverlo a subir.
  *
- * Reproduce exactamente lo que hace el panel web, así que no hace falta ningún
- * endpoint nuevo en el backend:
+ * Reparto de responsabilidades, el mismo que ya usa el panel web:
  *
- *   1. sube el .txt a Supabase Storage en insumos/{agencia}/{proyecto}/{archivo}
- *   2. registra la fuente con POST /proyectos/{id}/fuentes
+ *   lecturas    van directo a Supabase, filtradas por RLS
+ *   mutaciones  van al backend, que es quien ingiere y valida
+ *
+ * Eso no es un detalle de implementación. Significa que elegir el proyecto de
+ * destino funciona con solo Supabase en pie, y que el backend hace falta
+ * únicamente en el último paso: registrar la fuente. Si el backend no está
+ * desplegado, el fallo queda localizado ahí y todo lo demás sigue sirviendo.
  *
  * La autenticación se toma prestada del panel: si ya iniciaste sesión ahí con tu
  * enlace mágico, la extensión lee esa sesión y queda vinculada. No hay una
  * segunda contraseña ni un token que copiar a mano. El token se renueva solo
- * mientras el refresh_token siga vivo.
+ * mientras el refresh_token siga vivo, y la extensión hereda exactamente los
+ * permisos del usuario en el panel, ni uno más.
  */
 
 import { aTextoTrazable, nombreArchivo } from "../formatos.js";
@@ -49,38 +54,33 @@ export async function desvincular() {
  * Devuelve un token de acceso vigente, renovándolo si hace falta.
  *
  * Args:
- *   config: configuración de Escriba (discoverySupabaseUrl, discoverySupabaseAnonKey)
+ *   config: configuración de Escriba
  * Returns:
  *   token: access_token vigente
  */
 async function tokenVigente(config) {
   const sesion = await leerSesionPanel();
   if (!sesion?.access_token) {
-    throw new Error("Escriba no está vinculado al panel. Vincúlalo desde las opciones.");
+    throw new Error("Escriba no está vinculado al panel. Vincúlalo desde los ajustes.");
   }
 
   const expiraEnMs = (sesion.expires_at ?? 0) * 1000;
   if (expiraEnMs - Date.now() > MS_MARGEN) return sesion.access_token;
 
   if (!sesion.refresh_token) {
-    throw new Error("La sesión del panel expiró. Vuelve a vincular Escriba desde las opciones.");
+    throw new Error("La sesión del panel expiró. Vuelve a vincular Escriba desde los ajustes.");
   }
 
-  const res = await fetch(
-    `${base(config.discoverySupabaseUrl)}/auth/v1/token?grant_type=refresh_token`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        apikey: config.discoverySupabaseAnonKey,
-      },
-      body: JSON.stringify({ refresh_token: sesion.refresh_token }),
-    },
-  );
+  const res = await fetch(`${base(config.discoverySupabaseUrl)}/auth/v1/token?grant_type=refresh_token`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", apikey: config.discoverySupabaseAnonKey },
+    body: JSON.stringify({ refresh_token: sesion.refresh_token }),
+  });
   if (!res.ok) {
     await desvincular();
-    throw new Error("La sesión del panel expiró. Vuelve a vincular Escriba desde las opciones.");
+    throw new Error("La sesión del panel expiró. Vuelve a vincular Escriba desde los ajustes.");
   }
+
   const datos = await res.json();
   const renovada = {
     ...sesion,
@@ -97,31 +97,107 @@ function base(url) {
   return String(url ?? "").replace(/\/+$/, "");
 }
 
-// --- API del backend ---
+/** Comprueba que la configuración de Supabase esté completa. */
+function exigirSupabase(config) {
+  if (!config.discoverySupabaseUrl || !config.discoverySupabaseAnonKey) {
+    throw new Error(
+      "Falta la configuración de Supabase. Vincula Escriba con el panel desde los ajustes: " +
+        "el panel la entrega sola.",
+    );
+  }
+}
+
+// --- Lecturas: directo a Supabase, con RLS ---
 
 /**
- * Llama al backend del Agente de Discovery con el token del panel.
+ * Consulta la API REST de Supabase con la sesión del usuario.
+ *
+ * Las políticas RLS hacen el filtrado por agencia, así que aquí no hay ninguna
+ * condición de seguridad que se pueda olvidar: la base solo devuelve lo que ese
+ * usuario puede ver.
  *
  * Args:
  *   config: configuración de Escriba
- *   ruta: ruta de la API, por ejemplo "/proyectos"
- *   opciones: opciones de fetch
+ *   ruta: ruta y parámetros, por ejemplo "proyectos?select=id,cliente"
  * Returns:
- *   datos: cuerpo JSON de la respuesta
+ *   filas: lista de filas
  */
-async function api(config, ruta, opciones = {}) {
-  if (!config.discoveryBackendUrl) {
-    throw new Error("Falta la URL del backend del Agente de Discovery en las opciones.");
-  }
+async function consultar(config, ruta) {
+  exigirSupabase(config);
   const token = await tokenVigente(config);
-  const res = await fetch(`${base(config.discoveryBackendUrl)}${ruta}`, {
-    ...opciones,
+  const res = await fetch(`${base(config.discoverySupabaseUrl)}/rest/v1/${ruta}`, {
     headers: {
-      "Content-Type": "application/json",
+      apikey: config.discoverySupabaseAnonKey,
       Authorization: `Bearer ${token}`,
-      ...(opciones.headers ?? {}),
+      Accept: "application/json",
     },
   });
+  if (!res.ok) throw new Error(`Supabase respondió ${res.status}: ${await res.text()}`);
+  return res.json();
+}
+
+/**
+ * Lista los proyectos de discovery de la agencia, para elegir destino.
+ *
+ * Returns:
+ *   proyectos: [{id, slug, cliente, objetivo}] de la más reciente a la más antigua
+ */
+export async function listarProyectos(config) {
+  return consultar(config, "proyectos?select=id,slug,cliente,objetivo&order=creado.desc");
+}
+
+/**
+ * Devuelve el id de agencia del usuario vinculado.
+ *
+ * Sale de la tabla `perfil`, que es la que mapea usuario a agencia. Antes esto
+ * pasaba por el endpoint de onboarding del backend; leerlo de la base evita
+ * depender del backend para armar la ruta de Storage.
+ *
+ * Returns:
+ *   agenciaId: uuid de la agencia
+ */
+async function agenciaId(config) {
+  const filas = await consultar(config, "perfil?select=agencia_id&limit=1");
+  const id = filas?.[0]?.agencia_id;
+  if (!id) {
+    throw new Error(
+      "Tu usuario todavía no tiene agencia. Entra una vez al panel para completar el alta.",
+    );
+  }
+  return id;
+}
+
+// --- Mutación: al backend, que es quien ingiere ---
+
+/**
+ * Registra la fuente en el backend.
+ *
+ * Es el único paso que necesita el backend en pie, porque registrar una fuente no
+ * es escribir una fila: dispara la ingesta a fragmentos con locator.
+ *
+ * Args:
+ *   config: configuración de Escriba
+ *   proyectoId: proyecto de destino
+ *   cuerpo: { nombre_archivo, storage_path, modo }
+ * Returns:
+ *   fuente: la fila de la fuente registrada
+ */
+async function registrarFuente(config, proyectoId, cuerpo) {
+  if (!config.discoveryBackendUrl) {
+    throw new Error(
+      "Falta la URL del backend. Vincula Escriba con el panel desde los ajustes: " +
+        "el panel la entrega sola.",
+    );
+  }
+  const token = await tokenVigente(config);
+  const res = await fetch(
+    `${base(config.discoveryBackendUrl)}/proyectos/${proyectoId}/fuentes`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify(cuerpo),
+    },
+  );
   if (!res.ok) {
     const detalle = await res
       .json()
@@ -132,29 +208,7 @@ async function api(config, ruta, opciones = {}) {
   return res.json();
 }
 
-/**
- * Lista los proyectos de discovery de la agencia, para elegir destino.
- *
- * Returns:
- *   proyectos: lista de proyectos tal como los devuelve el backend
- */
-export async function listarProyectos(config) {
-  return api(config, "/proyectos");
-}
-
-/**
- * Devuelve el id de agencia del usuario vinculado.
- *
- * El endpoint de onboarding es el mismo que usa el panel al cargar y devuelve la
- * agencia existente si ya la hay.
- */
-async function agenciaId(config) {
-  const { agencia_id } = await api(config, "/onboarding", {
-    method: "POST",
-    body: JSON.stringify({ nombre_agencia: "Mi agencia" }),
-  });
-  return agencia_id;
-}
+// --- Envío completo ---
 
 /**
  * Envía una transcripción a un proyecto de discovery.
@@ -165,12 +219,11 @@ async function agenciaId(config) {
  *   intervenciones: [{inicioMs, hablante, texto}]
  *   meta: metadatos de la sesión
  * Returns:
- *   resultado: { archivo, fragmentos }
+ *   resultado: { archivo, fuente }
  */
 export async function enviarADiscovery(config, proyectoId, intervenciones, meta) {
-  if (!config.discoverySupabaseUrl || !config.discoverySupabaseAnonKey) {
-    throw new Error("Faltan la URL y la llave pública de Supabase en las opciones.");
-  }
+  exigirSupabase(config);
+  if (!proyectoId) throw new Error("No se eligió el proyecto de discovery de destino.");
 
   const texto = aTextoTrazable(intervenciones, meta);
   const archivo = nombreArchivo(meta, "txt");
@@ -197,13 +250,10 @@ export async function enviarADiscovery(config, proyectoId, intervenciones, meta)
     throw new Error(`No se pudo subir la transcripción: ${await subida.text()}`);
   }
 
-  const fuente = await api(config, `/proyectos/${proyectoId}/fuentes`, {
-    method: "POST",
-    body: JSON.stringify({
-      nombre_archivo: archivo,
-      storage_path: ruta,
-      modo: "discovery",
-    }),
+  const fuente = await registrarFuente(config, proyectoId, {
+    nombre_archivo: archivo,
+    storage_path: ruta,
+    modo: "discovery",
   });
 
   return { archivo, fuente };
